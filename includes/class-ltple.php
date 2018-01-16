@@ -99,7 +99,7 @@ class LTPLE_App_Twitter {
 				'name' 		=> 'Twitter',
 				'options' 	=> array(
 				
-					'thumbnail' => $this->parent->assets_url . 'images/apps/twitter.jpg',
+					'thumbnail' => $this->parent->assets_url . 'twitter.jpg',
 					'types' 	=> array('networks','images'),
 					'api_client'=> 'twitter',
 					'parameters'=> array (
