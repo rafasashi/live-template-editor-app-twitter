@@ -282,8 +282,8 @@ class LTPLE_App_Twitter {
 	 */
 	public function enqueue_styles () {
 		
-		wp_register_style( $this->_token . '-frontend', esc_url( $this->assets_url ) . 'css/frontend.css', array(), $this->_version );
-		wp_enqueue_style( $this->_token . '-frontend' );
+		//wp_register_style( $this->_token . '-frontend', esc_url( $this->assets_url ) . 'css/frontend.css', array(), $this->_version );
+		//wp_enqueue_style( $this->_token . '-frontend' );
 	} // End enqueue_styles ()
 
 	/**
@@ -294,8 +294,8 @@ class LTPLE_App_Twitter {
 	 */
 	public function enqueue_scripts () {
 		
-		wp_register_script( $this->_token . '-frontend', esc_url( $this->assets_url ) . 'js/frontend' . $this->script_suffix . '.js', array( 'jquery' ), $this->_version );
-		wp_enqueue_script( $this->_token . '-frontend' );
+		//wp_register_script( $this->_token . '-frontend', esc_url( $this->assets_url ) . 'js/frontend' . $this->script_suffix . '.js', array( 'jquery' ), $this->_version );
+		//wp_enqueue_script( $this->_token . '-frontend' );
 	} // End enqueue_scripts ()
 
 	/**
@@ -306,8 +306,8 @@ class LTPLE_App_Twitter {
 	 */
 	public function admin_enqueue_styles ( $hook = '' ) {
 		
-		wp_register_style( $this->_token . '-admin', esc_url( $this->assets_url ) . 'css/admin.css', array(), $this->_version );
-		wp_enqueue_style( $this->_token . '-admin' );
+		//wp_register_style( $this->_token . '-admin', esc_url( $this->assets_url ) . 'css/admin.css', array(), $this->_version );
+		//wp_enqueue_style( $this->_token . '-admin' );
 	} // End admin_enqueue_styles ()
 
 	/**
@@ -318,8 +318,8 @@ class LTPLE_App_Twitter {
 	 */
 	public function admin_enqueue_scripts ( $hook = '' ) {
 		
-		wp_register_script( $this->_token . '-admin', esc_url( $this->assets_url ) . 'js/admin' . $this->script_suffix . '.js', array( 'jquery' ), $this->_version );
-		wp_enqueue_script( $this->_token . '-admin' );
+		//wp_register_script( $this->_token . '-admin', esc_url( $this->assets_url ) . 'js/admin' . $this->script_suffix . '.js', array( 'jquery' ), $this->_version );
+		//wp_enqueue_script( $this->_token . '-admin' );
 	} // End admin_enqueue_scripts ()
 
 	/**
