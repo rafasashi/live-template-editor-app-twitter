@@ -185,7 +185,7 @@ class LTPLE_App_Twitter {
 			$redirect_to = '&ref='.str_replace(array('http://','https://'),'',$_REQUEST['redirect_to']);
 		}
 
-		echo'<a href="' . $this->parent->urls->editor . '?app=twitter&action=login' . $redirect_to . '" style="border-radius:5px;width:100%;display: block;text-align: center;margin-top: 10px;" class="btn-lg btn-info">';
+		echo'<a href="' . $this->parent->urls->apps . '?app=twitter&action=login' . $redirect_to . '" style="border-radius:5px;width:100%;display: block;text-align: center;margin-top: 10px;" class="btn-lg btn-info">';
 			
 			echo'Twitter Login';
 		

@@ -35,7 +35,7 @@ class LTPLE_Integrator_Twitter {
 			
 			$twt_consumer_key 		= array_search('twt_consumer_key', $parameters['key']);
 			$twt_consumer_secret 	= array_search('twt_consumer_secret', $parameters['key']);
-			$twt_oauth_callback 	= $this->parent->urls->editor;
+			$twt_oauth_callback 	= $this->parent->urls->apps;
 
 			if( !empty($parameters['value'][$twt_consumer_key]) && !empty($parameters['value'][$twt_consumer_secret]) ){
 			
@@ -1234,7 +1234,12 @@ class LTPLE_Integrator_Twitter {
 				if(isset($_REQUEST['oauth_token']) && $this->request_token['oauth_token'] !== $_REQUEST['oauth_token']) {
 					
 					//flush session
-					session_destroy();
+					if(!empty($_SESSION)){
+						
+						//flush session
+						
+						$_SESSION = array();			
+					}
 					
 					// store failure message
 
@@ -1252,8 +1257,12 @@ class LTPLE_Integrator_Twitter {
 					
 					$this->access_token = $this->connection->oauth("oauth/access_token", ["oauth_verifier" => $_REQUEST['oauth_verifier']]);
 					
-					//flush session
-					session_destroy();
+					if(!empty($_SESSION)){
+						
+						//flush session
+						
+						$_SESSION = array();			
+					}
 
 					//store access_token in session					
 					$_SESSION['app'] 			= $this->slug;
@@ -1325,10 +1334,11 @@ class LTPLE_Integrator_Twitter {
 					}
 
 				}
-				else{
+				elseif(!empty($_SESSION)){
 					
 					//flush session
-					session_destroy();					
+					
+					$_SESSION = array();			
 				}
 			}
 
@@ -1378,8 +1388,12 @@ class LTPLE_Integrator_Twitter {
 
 				if(isset($_REQUEST['oauth_token']) && $this->request_token['oauth_token'] !== $_REQUEST['oauth_token']) {
 					
-					//flush session
-					session_destroy();
+					if(!empty($_SESSION)){
+						
+						//flush session
+						
+						$_SESSION = array();			
+					}
 					
 					// store failure message
 
@@ -1394,8 +1408,12 @@ class LTPLE_Integrator_Twitter {
 					
 					$this->access_token = $this->connection->oauth("oauth/access_token", ["oauth_verifier" => $_REQUEST['oauth_verifier']]);
 					
-					//flush session
-					session_destroy();
+					if(!empty($_SESSION)){
+						
+						//flush session
+						
+						$_SESSION = array();			
+					}
 
 					//store access_token in session	
 					
@@ -1541,10 +1559,11 @@ class LTPLE_Integrator_Twitter {
 						exit;	
 					}
 				}
-				else{
+				elseif(!empty($_SESSION)){
 					
 					//flush session
-					session_destroy();					
+					
+					$_SESSION = array();			
 				}
 			}
 		}
