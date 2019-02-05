@@ -18,6 +18,9 @@ class LTPLE_App_Twitter {
 	 * @since   1.0.0
 	 * @return  void
 	 */
+	 
+	var $slug = 'twitter';
+	 
 	public function __construct ( $file='', $parent, $version = '1.0.0' ) {
 
 		$this->parent = $parent;
@@ -130,16 +133,15 @@ class LTPLE_App_Twitter {
 		return $template_path;
 	}
 	
+	public function get_triggers(){
 		
-		public function get_triggers(){
-			
-			$this->parent->stars->triggers['connected apps']['ltple_twitter_account_connected'] = array(
-					
-				'description' => 'when you connect a new Twitter account'
-			);
-			
-			return true;
-		}
+		$this->parent->stars->triggers['connected apps']['ltple_twitter_account_connected'] = array(
+				
+			'description' => 'when you connect a new Twitter account'
+		);
+		
+		return true;
+	}
 	
 	public function init_app(){	
 		
@@ -148,7 +150,7 @@ class LTPLE_App_Twitter {
 		add_action( 'ltple_twt_auto_retweet', array( $this, 'ltple_twt_auto_retweet_event'),1,2);
 		//add_action( 'ltple_twt_auto_follow', array( $this, 'ltple_twt_auto_follow_event'),1,2);
 		//add_action( 'ltple_twt_auto_unfollow', array( $this, 'ltple_twt_auto_unfollow_event'),1,2);
-		add_action( 'ltple_twt_import_leads', array( $this, 'ltple_twt_import_leads_event'),1,2);
+		//add_action( 'ltple_twt_import_leads', array( $this, 'ltple_twt_import_leads_event'),1,2);
 	}
 	
 	public function admin_init_app(){	
@@ -192,52 +194,54 @@ class LTPLE_App_Twitter {
 		echo'</a>';
 	}
 	
+	public function get_user_profile_url($app){
+		
+		return 'https://twitter.com/' . $app->user_name . '/';
+	}						
+	
+	public function get_social_icon_url($app){
+		
+		return $this->assets_url . 'images/social-icon.png';
+	}
+	
 	public function ltple_twt_auto_retweet_event( $appId, $last ){
 		
-		$appSlug = 'twitter';
-		
-		if( !isset( $this->parent->apps->{$appSlug} ) ){
+		if( !isset( $this->parent->apps->{$this->slug} ) ){
 			
-			$this->parent->apps->includeApp($appSlug);
+			$this->parent->apps->includeApp($this->slug,true);
 		}
 		
-		$this->parent->apps->{$appSlug}->retweetLastTweet($appId, $last);
+		$this->parent->apps->{$this->slug}->retweetLastTweet($appId, $last);
 	}
 	
 	public function ltple_twt_auto_follow_event( $appId, $next ){
 		
-		$appSlug = 'twitter';
-		
-		if( !isset( $this->parent->apps->{$appSlug} ) ){
+		if( !isset( $this->parent->apps->{$this->slug} ) ){
 			
-			$this->parent->apps->includeApp($appSlug);
+			$this->parent->apps->includeApp($this->slug,true);
 		}
 		
-		$this->parent->apps->{$appSlug}->followNextLeads($appId, $next);
+		$this->parent->apps->{$this->slug}->followNextLeads($appId, $next);
 	}
 	
 	public function ltple_twt_auto_unfollow_event( $appId, $last ){
 		
-		$appSlug = 'twitter';
-		
-		if( !isset( $this->parent->apps->{$appSlug} ) ){
+		if( !isset( $this->parent->apps->{$this->slug} ) ){
 			
-			$this->parent->apps->includeApp($appSlug);
+			$this->parent->apps->includeApp($this->slug,true);
 		}
 		
-		$this->parent->apps->{$appSlug}->unfollowLastLeads($appId, $last);
+		$this->parent->apps->{$this->slug}->unfollowLastLeads($appId, $last);
 	}
 	
 	public function ltple_twt_import_leads_event(){
-		
-		$appSlug = 'twitter';
-		
-		if( !isset( $this->parent->apps->{$appSlug} ) ){
+
+		if( !isset( $this->parent->apps->{$this->slug} ) ){
 			
-			$this->parent->apps->includeApp($appSlug);
+			$this->parent->apps->includeApp($this->slug,true);
 		}
 		
-		$this->parent->apps->{$appSlug}->importPendingLeads();
+		$this->parent->apps->{$this->slug}->importPendingLeads();
 	}	
 	
 	/**

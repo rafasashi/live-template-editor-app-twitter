@@ -79,6 +79,11 @@ class LTPLE_Integrator_Twitter {
 		}
 	}
 	
+	public function init_app(){
+		
+		return true;
+	}
+	
 	// Add app data custom fields
 
 	public function get_fields( $fields=[] ){
