@@ -1204,6 +1204,11 @@ class LTPLE_Integrator_Twitter {
 		
 		if( isset($_REQUEST['action']) ){
 			
+			if( $this->parent->user->loggedin ){
+				
+				$_SESSION = $this->reset_session();	
+			}	
+			
 			$this->connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET);
 			
 			if(!isset($_SESSION['oauth_token'])){
@@ -1212,17 +1217,20 @@ class LTPLE_Integrator_Twitter {
 
 				$_SESSION['app'] 				= $this->slug;
 				$_SESSION['action'] 			= $_REQUEST['action'];
-				$_SESSION['ref'] 				= ( !empty($_REQUEST['ref']) ? $this->parent->request->proto . urldecode($_REQUEST['ref']) : '');
 				$_SESSION['oauth_token'] 		= $this->request_token['oauth_token'];
 				$_SESSION['oauth_token_secret'] = $this->request_token['oauth_token_secret'];			
 			}
 			
 			if(isset($_SESSION['oauth_token'])){
 			
-				$this->oauth_url = $this->connection->url('oauth/authenticate', array('oauth_token' => $_SESSION['oauth_token']));
-			
+				$this->oauth_url = $this->connection->url('oauth/authenticate', array(
+				
+					'oauth_token' => $_SESSION['oauth_token'],
+				));
+				
+				// Redirecting twitter oauth
+				
 				wp_redirect($this->oauth_url);
-				echo 'Redirecting twitter oauth...';
 				exit;		
 			}
 		}
@@ -1238,12 +1246,11 @@ class LTPLE_Integrator_Twitter {
 
 				if(isset($_REQUEST['oauth_token']) && $this->request_token['oauth_token'] !== $_REQUEST['oauth_token']) {
 					
-					//flush session
 					if(!empty($_SESSION)){
 						
 						//flush session
 						
-						$_SESSION = array();			
+						$_SESSION = $this->reset_session();			
 					}
 					
 					// store failure message
@@ -1266,7 +1273,7 @@ class LTPLE_Integrator_Twitter {
 						
 						//flush session
 						
-						$_SESSION = array();			
+						$_SESSION = $this->reset_session();			
 					}
 
 					//store access_token in session					
@@ -1313,57 +1320,101 @@ class LTPLE_Integrator_Twitter {
 											
 						update_post_meta( $app_item->ID, 'appData', json_encode($this->access_token,JSON_PRETTY_PRINT));
 					}
-						
+					
+					// store success message
 
-					if(!empty($_SESSION['ref'])){
+					$_SESSION['message'] = '<div class="alert alert-success">';
 						
-						// handle redirection
-						
-						$redirect_url = $_SESSION['ref'];
-						
-						$_SESSION['ref'] = '';
-						
-						wp_redirect($redirect_url);
-						echo 'Redirecting twitter callback...';
-						exit;	
-					}
-					else{
-						
-						// store success message
-
-						$_SESSION['message'] = '<div class="alert alert-success">';
+						$_SESSION['message'] .= 'Congratulations, you have successfully connected a Twitter account!';
 							
-							$_SESSION['message'] .= 'Congratulations, you have successfully connected a Twitter account!';
-								
-						$_SESSION['message'] .= '</div>';						
-					}
-
+					$_SESSION['message'] .= '</div>';
+					
+					
 				}
 				elseif(!empty($_SESSION)){
 					
 					//flush session
 					
-					$_SESSION = array();			
+					$_SESSION = $this->reset_session();			
 				}
 			}
 
 			//var_dump($this->parent->user->ID);exit;
 		}
+		
+		if(!empty($_SESSION['ref'])){
+			
+			// handle redirection
+			
+			$redirect_url = $_SESSION['ref'];
+			
+			$_SESSION['ref'] = '';
+			
+			// Redirecting twitter callback
+			
+			wp_redirect($redirect_url);
+			exit;	
+		}
 	}
 	
-	public function appLogin(){
+	public function get_ref_url(){
 		
+		$ref = $this->parent->urls->dashboard;
+
+		if( !empty($_SESSION['ref']) ){
+		
+			$ref = $_SESSION['ref'];
+		}
+		elseif( !empty($_REQUEST['ref']) ){
+			
+			$ref = $this->parent->request->proto . str_replace(array('https://','http://'),'',urldecode($_REQUEST['ref']));
+		}
+		elseif( !empty($_REQUEST['redirect_to']) ){
+			
+			$ref = $this->parent->request->proto . str_replace(array('https://','http://'),'',urldecode($_REQUEST['redirect_to']));
+		}
+		
+		return $ref;
+	}
+	
+	public function reset_session(){
+							
+		return array(
+		
+			'ref' => $this->get_ref_url(),
+		);
+	}		
+	
+	public function appLogin(){
+	
 		if( isset($_REQUEST['action']) ){
 			
-			$this->connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET);
+			if( !$this->parent->user->loggedin ){
+				
+				if( !empty($_SESSION['access_token']['screen_name']) ){
+				
+					// flush previous session
+				
+					$_SESSION = $this->reset_session();	
+				}
+				else{
+					
+					// set ref url
 			
+					$_SESSION['ref'] = $this->get_ref_url();		
+				}
+			}			
+			
+			// start twitter sdk
+			
+			$this->connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET);
+
 			if(!isset($_SESSION['oauth_token'])){
 				
 				$this->request_token = $this->connection->oauth('oauth/request_token', array('oauth_callback' => OAUTH_CALLBACK));	
 
 				$_SESSION['app'] 				= $this->slug;
 				$_SESSION['action'] 			= $_REQUEST['action'];
-				$_SESSION['ref'] 				= ( !empty($_REQUEST['ref']) ? $this->parent->request->proto . urldecode($_REQUEST['ref']) : '');
 				$_SESSION['oauth_token'] 		= $this->request_token['oauth_token'];
 				$_SESSION['oauth_token_secret'] = $this->request_token['oauth_token_secret'];			
 			}
@@ -1375,14 +1426,15 @@ class LTPLE_Integrator_Twitter {
 					'oauth_token' => $_SESSION['oauth_token'],
 					'force_login' => 'false'
 				));
-			
+				
+				// Redirecting twitter oauth
+				
 				wp_redirect($this->oauth_url);
-				echo 'Redirecting twitter oauth...';
 				exit;		
 			}
 		}
 		elseif( isset($_SESSION['action']) ){
-
+			
 			if(!isset($_SESSION['access_token'])){
 				
 				// handle connect callback
@@ -1397,7 +1449,7 @@ class LTPLE_Integrator_Twitter {
 						
 						//flush session
 						
-						$_SESSION = array();			
+						$_SESSION = $this->reset_session();	
 					}
 					
 					// store failure message
@@ -1417,7 +1469,7 @@ class LTPLE_Integrator_Twitter {
 						
 						//flush session
 						
-						$_SESSION = array();			
+						$_SESSION = $this->reset_session();		
 					}
 
 					//store access_token in session	
@@ -1551,27 +1603,23 @@ class LTPLE_Integrator_Twitter {
 						exit;
 					}
 					
-					// handle redirection
-
-					if(!empty($_SESSION['ref'])){
-						
-						$redirect_url = $_SESSION['ref'];
-						
-						$_SESSION['ref'] = '';
-						
-						wp_redirect($redirect_url);
-						echo 'Redirecting twitter callback...';
-						exit;	
-					}
-				}
-				elseif(!empty($_SESSION)){
-					
-					//flush session
-					
-					$_SESSION = array();			
 				}
 			}
 		}
+
+		// handle redirection
+
+		if(!empty($_SESSION['ref'])){
+			
+			$redirect_url = $_SESSION['ref'];
+			
+			$_SESSION['ref'] = '';
+			
+			// Redirecting twitter callback
+			
+			wp_redirect($redirect_url);
+			exit;	
+		}		
 	}
 	
 	public function do_welcome_actions(){
