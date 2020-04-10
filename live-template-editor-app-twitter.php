@@ -23,7 +23,7 @@
 	*/
 	
 	if ( ! defined( 'ABSPATH' ) ) exit;
-	
+
 	/**
 	 * Returns the main instance of LTPLE_App_Twitter to prevent the need to use globals.
 	 *
@@ -31,6 +31,8 @@
 	 * @return object LTPLE_App_Twitter
 	 */
 	function LTPLE_App_Twitter ( $version = '1.0.0' ) {
+		
+		if ( ! class_exists( 'LTPLE_Client' ) ) return;
 		
 		$instance = LTPLE_Client::instance( __FILE__, $version );
 		
