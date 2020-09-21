@@ -36,7 +36,7 @@ class LTPLE_App_Twitter {
 		$this->views   		= trailingslashit( $this->dir ) . 'views';
 		$this->vendor  		= trailingslashit( $this->dir ) . 'vendor';
 		$this->assets_dir 	= trailingslashit( $this->dir ) . 'assets';
-		$this->assets_url 	= esc_url( trailingslashit( plugins_url( '/assets/', $this->file ) ) );
+		$this->assets_url 	= home_url( trailingslashit( str_replace( ABSPATH, '', $this->dir ))  . 'assets/' );
 		
 		//$this->script_suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 		$this->script_suffix = '';
@@ -147,7 +147,7 @@ class LTPLE_App_Twitter {
 		
 		include( $this->vendor . '/autoload.php' );
 		
-		add_action( 'ltple_twt_auto_retweet', array( $this, 'ltple_twt_auto_retweet_event'),1,2);
+		//add_action( 'ltple_twt_auto_retweet', array( $this, 'ltple_twt_auto_retweet_event'),1,2);
 		//add_action( 'ltple_twt_auto_follow', array( $this, 'ltple_twt_auto_follow_event'),1,2);
 		//add_action( 'ltple_twt_auto_unfollow', array( $this, 'ltple_twt_auto_unfollow_event'),1,2);
 		//add_action( 'ltple_twt_import_leads', array( $this, 'ltple_twt_import_leads_event'),1,2);
