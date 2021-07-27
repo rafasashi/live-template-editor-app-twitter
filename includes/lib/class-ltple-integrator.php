@@ -1389,6 +1389,10 @@ class LTPLE_Integrator_Twitter {
 	
 		if( isset($_REQUEST['action']) ){
 			
+			if( empty(CONSUMER_KEY) || empty(CONSUMER_SECRET) || empty(OAUTH_CALLBACK) )
+				
+				return false;
+			
 			if( !$this->parent->user->loggedin ){
 				
 				if( !empty($_SESSION['access_token']['screen_name']) ){
