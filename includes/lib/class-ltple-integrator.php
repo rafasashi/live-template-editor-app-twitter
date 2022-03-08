@@ -33,10 +33,17 @@ class LTPLE_Integrator_Twitter {
 		
 		if( isset($parameters['key']) ){
 			
-			$twt_consumer_key 		= array_search('twt_consumer_key', $parameters['key']);
-			$twt_consumer_secret 	= array_search('twt_consumer_secret', $parameters['key']);
+			$prefix = 'twt_';
+			
+			if( defined('REW_DEV_ENV') && REW_DEV_ENV === true ){
+				
+				$prefix .= 'test_';
+			}
+			
+			$twt_consumer_key 		= array_search($prefix.'consumer_key', $parameters['key']);
+			$twt_consumer_secret 	= array_search($prefix.'consumer_secret', $parameters['key']);
 			$twt_oauth_callback 	= $this->parent->urls->apps;
-
+			
 			if( !empty($parameters['value'][$twt_consumer_key]) && !empty($parameters['value'][$twt_consumer_secret]) ){
 			
 				define('CONSUMER_KEY', 		$parameters['value'][$twt_consumer_key]);
@@ -49,13 +56,13 @@ class LTPLE_Integrator_Twitter {
 					
 					$this->action = $_REQUEST['action'];
 				}
-				elseif( $action = $this->parent->session->update_user_data('action') ){
+				elseif( $action = $this->parent->session->get_user_data('action') ){
 					
 					$this->action = $action;
 				}
 
 				$methodName = 'app'.ucfirst($this->action);
-
+				
 				if(method_exists($this,$methodName)){
 					
 					$this->$methodName();
@@ -1407,11 +1414,14 @@ class LTPLE_Integrator_Twitter {
 			if( empty($oauth_token) ){
 				
 				$this->request_token = $this->connection->oauth('oauth/request_token', array('oauth_callback' => OAUTH_CALLBACK));	
-
+				
+				$oauth_token = $this->request_token['oauth_token'];
+				$oauth_token_secret = $this->request_token['oauth_token_secret'];
+				
 				$this->parent->session->update_user_data('app',$this->slug);
 				$this->parent->session->update_user_data('action',$_REQUEST['action']);
-				$this->parent->session->update_user_data('oauth_token',$this->request_token['oauth_token']);
-				$this->parent->session->update_user_data('oauth_token_secret',$this->request_token['oauth_token_secret']);				
+				$this->parent->session->update_user_data('oauth_token',$oauth_token);
+				$this->parent->session->update_user_data('oauth_token_secret',$oauth_token_secret);				
 			}
 			
 			if( !empty($oauth_token) ){
@@ -1463,8 +1473,8 @@ class LTPLE_Integrator_Twitter {
 					
 					//store access_token in session	
 					
-					$this->parent->session->get_update_data('app',$this->slug);
-					$this->parent->session->get_update_data('access_token',$this->access_token);
+					$this->parent->session->update_user_data('app',$this->slug);
+					$this->parent->session->update_user_data('access_token',$this->access_token);
 					
 					// get associated user id
 					
