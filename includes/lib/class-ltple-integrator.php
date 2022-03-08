@@ -49,9 +49,9 @@ class LTPLE_Integrator_Twitter {
 					
 					$this->action = $_REQUEST['action'];
 				}
-				elseif(!empty($_SESSION['action'])){
+				elseif( $action = $this->parent->session->update_user_data('action') ){
 					
-					$this->action = $_SESSION['action'];
+					$this->action = $action;
 				}
 
 				$methodName = 'app'.ucfirst($this->action);
@@ -63,11 +63,13 @@ class LTPLE_Integrator_Twitter {
 			}
 			else{
 				
-				$_SESSION['message'] = '<div class="alert alert-danger">';
+				$message = '<div class="alert alert-danger">';
 					
-					$_SESSION['message'] .= 'Sorry, twitter is not available on this platform yet, please contact the dev team...';
+					$message .= 'Sorry, twitter is not available on this platform yet, please contact the dev team...';
 						
-				$_SESSION['message'] .= '</div>';				
+				$message .= '</div>';
+
+				$this->parent->session->update_user_data('message',$message);
 			}
 		}
 		
@@ -1123,11 +1125,13 @@ class LTPLE_Integrator_Twitter {
 
 				if( !empty($items->errors[0]->message) ){
 	
-					$_SESSION['message'] = '<div class="alert alert-danger">';
+					$message = '<div class="alert alert-danger">';
 						
-						$_SESSION['message'] .= $items->errors[0]->message;
+						$message .= $items->errors[0]->message;
 							
-					$_SESSION['message'] .= '</div>';	
+					$message .= '</div>';
+					
+					$this->parent->session->update_user_data('message',$message);
 				}
 				else{
 						
@@ -1206,26 +1210,31 @@ class LTPLE_Integrator_Twitter {
 			
 			if( $this->parent->user->loggedin ){
 				
-				$_SESSION = $this->reset_session();	
+				$this->reset_session();	
 			}	
 			
 			$this->connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET);
 			
-			if(!isset($_SESSION['oauth_token'])){
+			$oauth_token = $this->parent->session->get_user_data('oauth_token');
+			
+			if( empty($oauth_token) ){
 				
 				$this->request_token = $this->connection->oauth('oauth/request_token', array('oauth_callback' => OAUTH_CALLBACK));	
-
-				$_SESSION['app'] 				= $this->slug;
-				$_SESSION['action'] 			= $_REQUEST['action'];
-				$_SESSION['oauth_token'] 		= $this->request_token['oauth_token'];
-				$_SESSION['oauth_token_secret'] = $this->request_token['oauth_token_secret'];			
+				
+				$oauth_token = $this->request_token['oauth_token'];
+				$oauth_token_secret = $this->request_token['oauth_token_secret'];
+				
+				$this->parent->session->update_user_data('app',$this->slug);
+				$this->parent->session->update_user_data('action',$_REQUEST['action']);
+				$this->parent->session->update_user_data('oauth_token',$oauth_token);
+				$this->parent->session->update_user_data('oauth_token_secret',$oauth_token_secret);			
 			}
 			
-			if(isset($_SESSION['oauth_token'])){
+			if( !empty($oauth_token) ){
 			
 				$this->oauth_url = $this->connection->url('oauth/authenticate', array(
 				
-					'oauth_token' => $_SESSION['oauth_token'],
+					'oauth_token' => $oauth_token,
 				));
 				
 				// Redirecting twitter oauth
@@ -1234,32 +1243,31 @@ class LTPLE_Integrator_Twitter {
 				exit;		
 			}
 		}
-		elseif( isset($_SESSION['action']) ){
-
-			if(!isset($_SESSION['access_token'])){
+		elseif( $action = $this->parent->session->get_user_data('action') ){
+			
+			$oauth_token = $this->parent->session->get_user_data('oauth_token');
+			
+			if( empty($oauth_token) ){
 				
 				// handle connect callback
 				
 				$this->request_token = [];
-				$this->request_token['oauth_token'] 		= $_SESSION['oauth_token'];
-				$this->request_token['oauth_token_secret'] 	= $_SESSION['oauth_token_secret'];
+				$this->request_token['oauth_token'] 		= $this->parent->session->get_user_data('oauth_token');
+				$this->request_token['oauth_token_secret'] 	= $this->parent->session->get_user_data('oauth_token_secret');
 
-				if(isset($_REQUEST['oauth_token']) && $this->request_token['oauth_token'] !== $_REQUEST['oauth_token']) {
+				if( isset($_REQUEST['oauth_token']) && $this->request_token['oauth_token'] !== $_REQUEST['oauth_token'] ) {
 					
-					if(!empty($_SESSION)){
-						
-						//flush session
-						
-						$_SESSION = $this->reset_session();			
-					}
-					
+					$this->reset_session();			
+		
 					// store failure message
 
-					$_SESSION['message'] = '<div class="alert alert-danger">';
+					$message = '<div class="alert alert-danger">';
 						
-						$_SESSION['message'] .= 'Twitter connection failed...';
+						$message .= 'Twitter connection failed...';
 							
-					$_SESSION['message'] .= '</div>';
+					$message .= '</div>';
+					
+					$this->parent->session->update_user_data('message',$message);
 				}
 				elseif(isset($_REQUEST['oauth_verifier'])){
 					
@@ -1269,20 +1277,16 @@ class LTPLE_Integrator_Twitter {
 					
 					$this->access_token = $this->connection->oauth("oauth/access_token", ["oauth_verifier" => $_REQUEST['oauth_verifier']]);
 					
-					if(!empty($_SESSION)){
-						
-						//flush session
-						
-						$_SESSION = $this->reset_session();			
-					}
+					$this->reset_session();			
 
 					//store access_token in session					
-					$_SESSION['app'] 			= $this->slug;
-					$_SESSION['access_token'] 	= $this->access_token;
+					
+					$this->parent->session->update_user_data('app',$this->slug);
+					$this->parent->session->update_user_data('access_token',$this->access_token);
 					
 					// store access_token in database		
 					
-					$app_title = wp_strip_all_tags( 'twitter - ' . $_SESSION['access_token']['screen_name'] );
+					$app_title = wp_strip_all_tags( 'twitter - ' . $this->access_token['screen_name'] );
 					
 					$app_item = get_page_by_title( $app_title, OBJECT, 'user-app' );
 					
@@ -1323,32 +1327,26 @@ class LTPLE_Integrator_Twitter {
 					
 					// store success message
 
-					$_SESSION['message'] = '<div class="alert alert-success">';
+					$message = '<div class="alert alert-success">';
 						
-						$_SESSION['message'] .= 'Congratulations, you have successfully connected a Twitter account!';
+						$message .= 'Congratulations, you have successfully connected a Twitter account!';
 							
-					$_SESSION['message'] .= '</div>';
+					$message .= '</div>';
 					
-					
+					$this->parent->session->update_user_data('message',$message);
 				}
-				elseif(!empty($_SESSION)){
+				else{
 					
 					//flush session
 					
-					$_SESSION = $this->reset_session();			
+					$this->reset_session();			
 				}
 			}
 
 			//var_dump($this->parent->user->ID);exit;
 		}
 		
-		if(!empty($_SESSION['ref'])){
-			
-			// handle redirection
-			
-			$redirect_url = $_SESSION['ref'];
-			
-			$_SESSION['ref'] = '';
+		if( $redirect_url = $this->parent->session->get_user_data('ref') ){
 			
 			// Redirecting twitter callback
 			
@@ -1361,9 +1359,9 @@ class LTPLE_Integrator_Twitter {
 		
 		$ref = $this->parent->urls->dashboard;
 
-		if( !empty($_SESSION['ref']) ){
+		if( $redirect_url = $this->parent->session->get_user_data('ref') ){
 		
-			$ref = $_SESSION['ref'];
+			$ref = $redirect_url;
 		}
 		elseif( !empty($_REQUEST['ref']) ){
 			
@@ -1378,11 +1376,13 @@ class LTPLE_Integrator_Twitter {
 	}
 	
 	public function reset_session(){
-							
-		return array(
 		
-			'ref' => $this->get_ref_url(),
-		);
+		$this->parent->session->update_user_data('access_token','');		
+		$this->parent->session->update_user_data('oauth_token','');
+		$this->parent->session->update_user_data('oauth_token_secret','');
+		$this->parent->session->update_user_data('ref',$this->get_ref_url());		
+		
+		return true;
 	}		
 	
 	public function appLogin(){
@@ -1395,39 +1395,30 @@ class LTPLE_Integrator_Twitter {
 			
 			if( !$this->parent->user->loggedin ){
 				
-				if( !empty($_SESSION['access_token']['screen_name']) ){
-				
-					// flush previous session
-				
-					$_SESSION = $this->reset_session();	
-				}
-				else{
-					
-					// set ref url
-			
-					$_SESSION['ref'] = $this->get_ref_url();		
-				}
+				$this->reset_session();
 			}			
 			
 			// start twitter sdk
 			
 			$this->connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET);
-
-			if(!isset($_SESSION['oauth_token'])){
+			
+			$oauth_token = $this->parent->session->get_user_data('oauth_token');
+			
+			if( empty($oauth_token) ){
 				
 				$this->request_token = $this->connection->oauth('oauth/request_token', array('oauth_callback' => OAUTH_CALLBACK));	
 
-				$_SESSION['app'] 				= $this->slug;
-				$_SESSION['action'] 			= $_REQUEST['action'];
-				$_SESSION['oauth_token'] 		= $this->request_token['oauth_token'];
-				$_SESSION['oauth_token_secret'] = $this->request_token['oauth_token_secret'];			
+				$this->parent->session->update_user_data('app',$this->slug);
+				$this->parent->session->update_user_data('action',$_REQUEST['action']);
+				$this->parent->session->update_user_data('oauth_token',$this->request_token['oauth_token']);
+				$this->parent->session->update_user_data('oauth_token_secret',$this->request_token['oauth_token_secret']);				
 			}
 			
-			if(isset($_SESSION['oauth_token'])){
+			if( !empty($oauth_token) ){
 			
 				$this->oauth_url = $this->connection->url('oauth/authenticate', array(
 				
-					'oauth_token' => $_SESSION['oauth_token'],
+					'oauth_token' => $oauth_token,
 					'force_login' => 'false'
 				));
 				
@@ -1437,24 +1428,23 @@ class LTPLE_Integrator_Twitter {
 				exit;		
 			}
 		}
-		elseif( isset($_SESSION['action']) ){
+		elseif( $action = $this->parent->session->get_user_data('action') ){
 			
-			if(!isset($_SESSION['access_token'])){
+			$access_token = $this->parent->session->get_user_data('access_token');
+			
+			if( empty($access_token) ){
 				
 				// handle connect callback
 				
 				$this->request_token = [];
-				$this->request_token['oauth_token'] 		= $_SESSION['oauth_token'];
-				$this->request_token['oauth_token_secret'] 	= $_SESSION['oauth_token_secret'];
+				$this->request_token['oauth_token'] 		= $this->parent->session->get_user_data('oauth_token');
+				$this->request_token['oauth_token_secret'] 	= $this->parent->session->get_user_data('oauth_token_secret');
 
-				if(isset($_REQUEST['oauth_token']) && $this->request_token['oauth_token'] !== $_REQUEST['oauth_token']) {
+				if( isset($_REQUEST['oauth_token']) && $this->request_token['oauth_token'] !== $_REQUEST['oauth_token'] ) {
 					
-					if(!empty($_SESSION)){
+					//flush session
 						
-						//flush session
-						
-						$_SESSION = $this->reset_session();	
-					}
+					$this->reset_session();
 					
 					// store failure message
 
@@ -1469,21 +1459,16 @@ class LTPLE_Integrator_Twitter {
 					
 					$this->access_token = $this->connection->oauth("oauth/access_token", ["oauth_verifier" => $_REQUEST['oauth_verifier']]);
 					
-					if(!empty($_SESSION)){
-						
-						//flush session
-						
-						$_SESSION = $this->reset_session();		
-					}
-
+					$this->reset_session();
+					
 					//store access_token in session	
 					
-					$_SESSION['app'] 			= $this->slug;
-					$_SESSION['access_token'] 	= $this->access_token;
+					$this->parent->session->get_update_data('app',$this->slug);
+					$this->parent->session->get_update_data('access_token',$this->access_token);
 					
 					// get associated user id
 					
-					$app_title = wp_strip_all_tags( 'twitter - ' . $_SESSION['access_token']['screen_name'] );
+					$app_title = wp_strip_all_tags( 'twitter - ' . $this->access_token['screen_name'] );
 					
 					$app_item = get_page_by_title( $app_title, OBJECT, 'user-app' );
 
@@ -1613,11 +1598,7 @@ class LTPLE_Integrator_Twitter {
 
 		// handle redirection
 
-		if(!empty($_SESSION['ref'])){
-			
-			$redirect_url = $_SESSION['ref'];
-			
-			$_SESSION['ref'] = '';
+		if( $redirect_url = $this->parent->session->get_user_data('ref') ){
 			
 			// Redirecting twitter callback
 			
