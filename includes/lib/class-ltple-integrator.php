@@ -4,34 +4,19 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 use Abraham\TwitterOAuth\TwitterOAuth;
 
-class LTPLE_Integrator_Twitter {
+class LTPLE_Integrator_Twitter extends LTPLE_Client_Integrator {
 	
-	var $parent;
 	var $action;
-	var $slug;
 	var $connectedAppId;
 	
 	/**
 	 * Constructor function
 	 */
-	public function __construct ( $app_slug, $parent, $apps ) {
+	public function init_app() {
 
-		$this->parent 		= $parent;
-		$this->parent->apps = $apps;
+		add_filter('user-app_custom_fields', array( $this, 'get_fields' ));
 		
-		add_filter("user-app_custom_fields", array( $this, 'get_fields' ));
-		
-		$this->slug = $app_slug;
-		
-		// get app term
-
-		$this->term = get_term_by('slug',$this->slug,'app-type');
-		
-		// get app parameters
-		
-		$parameters = get_option('parameters_'.$this->slug);
-		
-		if( isset($parameters['key']) ){
+		if( isset($this->parameters['key']) ){
 			
 			$prefix = 'twt_';
 			
@@ -40,14 +25,14 @@ class LTPLE_Integrator_Twitter {
 				$prefix .= 'test_';
 			}
 			
-			$twt_consumer_key 		= array_search($prefix.'consumer_key', $parameters['key']);
-			$twt_consumer_secret 	= array_search($prefix.'consumer_secret', $parameters['key']);
+			$twt_consumer_key 		= array_search($prefix.'consumer_key', $this->parameters['key']);
+			$twt_consumer_secret 	= array_search($prefix.'consumer_secret', $this->parameters['key']);
 			$twt_oauth_callback 	= $this->parent->urls->apps;
 			
-			if( !empty($parameters['value'][$twt_consumer_key]) && !empty($parameters['value'][$twt_consumer_secret]) ){
+			if( !empty($this->parameters['value'][$twt_consumer_key]) && !empty($this->parameters['value'][$twt_consumer_secret]) ){
 			
-				define('CONSUMER_KEY', 		$parameters['value'][$twt_consumer_key]);
-				define('CONSUMER_SECRET', 	$parameters['value'][$twt_consumer_secret]);
+				define('CONSUMER_KEY', 		$this->parameters['value'][$twt_consumer_key]);
+				define('CONSUMER_SECRET', 	$this->parameters['value'][$twt_consumer_secret]);
 				define('OAUTH_CALLBACK', 	$twt_oauth_callback);
 
 				// get current action
@@ -79,18 +64,6 @@ class LTPLE_Integrator_Twitter {
 				$this->parent->session->update_user_data('message',$message);
 			}
 		}
-		
-		// store frontend options
-		
-		if(isset($_POST['leadTwtDm'])){
-			
-			update_user_meta($this->parent->user->ID , $this->parent->_base . 'leadTwtDm',implode( PHP_EOL, array_map( 'sanitize_text_field', explode( PHP_EOL, $_POST['leadTwtDm'] ) ) ));
-		}
-	}
-	
-	public function init_app(){
-		
-		return true;
 	}
 	
 	// Add app data custom fields
@@ -259,350 +232,6 @@ class LTPLE_Integrator_Twitter {
 		
 		return $connection;
 	}
-	
-	public function followNextLeads($appId = null, $count = 1){
-		
-		if( is_numeric($appId) ){
-			
-			$user_id = intval(get_post_field( 'post_author', $appId ));
-			
-			if( $user_id > 0 ){
-			
-				if( $app = json_decode(get_post_meta( $appId, 'appData', true ),false) ){
-				
-					// start connection
-
-					$connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET, $app->oauth_token, $app->oauth_token_secret);
-					
-					// get next leads
-
-					$args = array(
-						
-						'author' 	 	=> - $user_id,
-						'post_type' 	=> 'lead',
-						'posts_per_page'=> 100,
-						'meta_query' 	=> array(
-							'relation' 	=> 'OR',
-							/*
-							array(
-								'key' 		=> 'leadRequestedBy'.$appId,
-								'value' 	=> 0,
-								'compare' 	=> '>',
-							),
-							*/
-							array(
-								'key' 		=> 'leadRequestedBy'.$appId,
-								'compare' 	=> 'NOT EXISTS',
-							)
-						)			
-					);
-					
-					$q = get_posts($args);
-					
-					if( !empty($q) ){
-						
-						$names = [];
-						
-						foreach( $q as $lead){
-							
-							$meta = get_post_meta($lead->ID);
-							
-							if( isset($meta['leadTwtName'][0]) ){
-								
-								//stack screen name
-
-								$names[$lead->ID] = $meta['leadTwtName'][0];								
-							}
-						}
-						
-						if( !empty($names) ){
-								
-							// check friendship 
-
-							$friendships = $connection->get( 'friendships/lookup', array(
-							
-								'screen_name' => implode(',',$names),
-							));
-							
-							if(!empty($friendships)){
-								
-								$followed = [];
-								
-								foreach( $friendships as $friendship ){
-								
-									if( !empty($friendship->screen_name) && isset( $friendship->connections ) ){
-
-										$lead_id = array_search($friendship->screen_name,$names);
-										
-										if( in_array('none',$friendship->connections) ){
-											
-											// follow user
-												
-											$friend = $connection->post( 'friendships/create', array(
-										
-												'screen_name' => $friendship->screen_name,
-											));
-											
-											// set request time
-											
-											if( !empty($friend->screen_name) ){
-												
-												$followed[] = '@'.$friend->screen_name;
-												
-												update_post_meta( $lead_id, 'leadRequestedBy'.$appId, time() );
-											}
-											else{
-												
-												echo'Error following user...';
-												exit;											
-											}
-										}
-										else{
-											
-											update_post_meta( $lead_id, 'leadRequestedBy'.$appId, -1 );
-										}
-									}
-									else{
-										
-										echo'Error getting user connections...';
-										exit;
-									}
-									
-									if( count($followed) == $count){
-										
-										break;
-									}
-								}
-								
-								if(!empty($followed)){
-
-									$startWith = array(
-									
-										'Following awesomeness',
-										'Hello everyone',
-										'What\'s up',
-										'Wassup',
-										'Good day to',
-										'Howdy!',
-										'Hi there!',
-										'How are you',
-										'How are things',
-										'How do you do',
-										'What\'s happening',
-										'Greetings',
-										'Warm Greetings',
-										'Welcoming',
-										'Warm welcome to',
-										'Happy to connect with',
-										'Connecting with',
-										'just discovered',
-										'Discovering',
-										'In love with',
-										'Found of',
-										'Crazy about',
-										'pleased to meet',
-										'D\'like to connect with',
-										'D\'like to know',
-										'D\'like to chat with ',
-										'D\'like to talk',
-										'Can we talk',
-										'#handshake',
-										'#acknowledgment',
-										'#wordOfGreeting',
-										'Good day to',
-									);
-									
-									shuffle($startWith);
-									
-									$endWith = array(
-										
-										'',
-										'RT','Thx!','Thanks',
-										':D',':)','👌','🤣','😃','🙃','😘','😋','🤗',
-										'😎','😺','👐','🙌','👍','✌️','🖐','👋','👥',
-										'🕶','😻','🐵','🐱','🐭','🐹','🌟','🌞','☀️',
-									);
-									
-									shuffle($endWith);
-									
-									// tweet a group status
-									
-									$status = reset($startWith) . ' ' . implode(' ',$followed) . ' ' . reset($endWith);
-									
-									$tweet = $connection->post( 'statuses/update', array(
-									
-										'status' => $status,
-									));									
-								}
-							}
-							else{
-								
-								echo'Error getting user firendship...';
-								exit;									
-							}								
-						}
-					}
-				}
-			}
-		}			
-	}
-
-	public function unfollowLastLeads($appId = null, $max_unf = 1){
-		
-		exit;
-		
-		if( is_numeric($appId) ){
-			
-			$user_id = intval(get_post_field( 'post_author', $appId ));
-			
-			if( $user_id > 0 ){
-			
-				if( $app = json_decode(get_post_meta( $appId, 'appData', true ),false) ){
-				
-					// start connection
-
-					$connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET, $app->oauth_token, $app->oauth_token_secret);
-					
-					// get last leads followed
-
-					$args = array(
-						
-						'author' 	 	=> - $user_id,
-						'post_type' 	=> 'lead',
-						'posts_per_page'=> 100,
-						'meta_key'      => 'leadRequestedBy'.$appId,
-						'order_by'      => 'meta_value_num',
-						'order'         => 'DESC', // older first				
-						'meta_query' 	=> array(
-							'relation' 	=> 'AND',
-							array(
-								'key' 		=> 'leadRequestedBy'.$appId,
-								'value' 	=> '-2',
-								'compare' 	=> '!=',
-							),
-							array(
-								'key' 		=> 'leadRequestedBy'.$appId,
-								'compare' 	=> 'EXISTS',
-							)
-						)			
-					);
-					
-					$q = get_posts($args);
-					
-					if( !empty($q) ){
-
-						$names 		= [];
-						$max_dms 	= 3;
-						
-						foreach( $q as $lead){
-							
-							$lead->meta = get_post_meta($lead->ID);
-							
-							if( isset($lead->meta['leadTwtName'][0]) ){
-								
-								//stack screen name
-
-								$names[$lead->ID] = $lead->meta['leadTwtName'][0];								
-							}
-						}
-						
-						if( !empty($names) ){
-								
-							// check friendship 
-
-							$friendships = $connection->get( 'friendships/lookup', array(
-							
-								'screen_name' => implode(',',$names),
-							));
-							
-							if(!empty($friendships)){							
-							
-								$dms = $unf = 0;
-							
-								foreach( $friendships as $friendship ){
-								
-									if( !empty($friendship->screen_name) && isset( $friendship->connections ) ){
-
-										$lead_id = array_search($friendship->screen_name,$names);
-										
-										if( !in_array('followed_by',$friendship->connections) ){
-											
-											// unfollow user
-												
-											$connection->post( 'friendships/destroy', array(
-										
-												'screen_name' => $friendship->screen_name,
-											));
-											
-											// set request 
-
-											update_post_meta( $lead_id, 'leadRequestedBy'.$appId, -2 );
-										}
-										else{
-											
-											// thanks for followingback DM on behalf of main account
-											
-											$dm_content = get_option( $this->parent->_base . 'twt_thanks_followback_dm' );
-								
-											if(!empty($dm_content)){
-												
-												$reponse = $connection->post('direct_messages/new', array(
-												
-													'screen_name' 	=> $friendship->screen_name,
-													'text' 			=> $this->do_shortcodes($dm_content,$friendship->screen_name)
-												));
-												
-												if(isset($reponse->created_at)){
-										
-													// set request 
-
-													update_post_meta( $lead_id, 'leadRequestedBy'.$appId, -2 );													
-										
-													sleep(1);
-										
-													++$dms;
-												} 
-												elseif( !empty($reponse->errors[0]->code) ){
-													
-													var_dump($reponse->errors[0]);
-													exit;
-												}
-											}
-										}
-									}
-									else{
-										
-										echo'Error getting user connections...';
-										exit;
-									}
-									
-									if( $dms == $max_dms || $unf == $max_unf){
-										
-										break;
-									}
-									else{
-										
-										++$unf;
-									}	
-								}
-							}
-							else{
-								
-								echo'Error getting user firendship...';
-								exit;									
-							}								
-						}
-					}
-					else{
-						
-						echo'No more firendships to analyse...';
-						exit;						
-					}
-				}
-			}
-		}
-	}
-	
 	
 	public function retweetLastTweet($appId = null, $count){
 		
@@ -787,95 +416,7 @@ class LTPLE_Integrator_Twitter {
 
 		return $app;
 	}
-	
-	public function importPendingLeads(){
-		
-		if( $app = $this->get_pending_importation() ){
 
-			$this->insert_leads($app);
-		}
-	}
-	
-	public function insert_leads($app){
-		
-		if(!empty($app->ID)){
-
-			$followers = $this->appGetFollowers($app->ID);
-			
-			if(!empty($followers)){
-				
-				foreach($followers as $follower){
-				
-					$lead_title = $this->slug . ' - ' . $follower->screen_name;
-
-					$q = get_page_by_title( $lead_title, OBJECT, 'lead' );
-
-					if( empty($q) ){
-
-						if( $lead_id = wp_insert_post(array(
-					
-							'post_author' 	=> $app->post_author,
-							'post_title' 	=> $lead_title,
-							'post_type' 	=> 'lead',
-							'post_status' 	=> 'publish'
-						))){
-
-							update_post_meta( $lead_id, 'leadAppId', 		$app->ID);
-							update_post_meta( $lead_id, 'leadTwtName', 		$follower->screen_name);
-							update_post_meta( $lead_id, 'leadNicename',		$follower->name);
-							update_post_meta( $lead_id, 'leadPicture',		$follower->profile_image_url);
-							update_post_meta( $lead_id, 'leadEmail', 		LTPLE_Integrator_Scraper::extractEmails($follower->description,true));
-							update_post_meta( $lead_id, 'leadTwtFollowers',	$follower->followers_count);
-							update_post_meta( $lead_id, 'leadDescription',	$follower->description );
-							update_post_meta( $lead_id, 'leadCanSpam',		'true' );
-							update_post_meta( $lead_id, 'leadTwtProtected',$follower->protected );
-							
-							if(!empty($follower->entities->urls->display_url) && !empty($follower->entities->urls->expanded_url)){
-								
-								update_post_meta( $lead_id, 'leadUrls', 		[ 'key' => [$follower->entities->urls->display_url], 'value' => [$follower->entities->urls->expanded_url] ] );
-							}
-						}
-					}
-				}
-				
-				return true;
-			}
-		}
-
-		return false;
-	}
-	
-	public function appImportLeads(){
-		
-		$user_id = $_REQUEST['user_id'];
-		
-		if(is_numeric($user_id)){
-		
-			$user_apps = $this->parent->apps->getUserApps($user_id,$this->slug);
-			
-			if( !empty($user_apps) ){
-				
-				foreach($user_apps as $app){
-					
-					if($this->insert_leads($app)){
-						
-						break;
-					}
-				}
-			}
-			else{
-			
-				echo 'Error getting account id';
-				exit;
-			}
-		}
-		else{
-			
-			echo 'Error getting user id';
-			exit;			
-		}
-	}	
-	
 	public function appGetFollowers($app_id){
 		
 		$followers = [];
@@ -1212,7 +753,7 @@ class LTPLE_Integrator_Twitter {
 	}
 	
 	public function appConnect(){
-		
+
 		if( isset($_REQUEST['action']) ){
 			
 			if( $this->parent->user->loggedin ){
@@ -1231,7 +772,7 @@ class LTPLE_Integrator_Twitter {
 				$oauth_token = $this->request_token['oauth_token'];
 				$oauth_token_secret = $this->request_token['oauth_token_secret'];
 				
-				$this->parent->session->update_user_data('app',$this->slug);
+				$this->parent->session->update_user_data('app',$this->app_slug);
 				$this->parent->session->update_user_data('action',$_REQUEST['action']);
 				$this->parent->session->update_user_data('oauth_token',$oauth_token);
 				$this->parent->session->update_user_data('oauth_token_secret',$oauth_token_secret);			
@@ -1288,7 +829,7 @@ class LTPLE_Integrator_Twitter {
 
 					//store access_token in session					
 					
-					$this->parent->session->update_user_data('app',$this->slug);
+					$this->parent->session->update_user_data('app',$this->app_slug);
 					$this->parent->session->update_user_data('access_token',$this->access_token);
 					
 					// store access_token in database		
@@ -1349,8 +890,6 @@ class LTPLE_Integrator_Twitter {
 					$this->reset_session();			
 				}
 			}
-
-			//var_dump($this->parent->user->ID);exit;
 		}
 		
 		if( $redirect_url = $this->parent->session->get_user_data('ref') ){
@@ -1361,27 +900,7 @@ class LTPLE_Integrator_Twitter {
 			exit;	
 		}
 	}
-	
-	public function get_ref_url(){
-		
-		$ref = $this->parent->urls->dashboard;
 
-		if( $redirect_url = $this->parent->session->get_user_data('ref') ){
-		
-			$ref = $redirect_url;
-		}
-		elseif( !empty($_REQUEST['ref']) ){
-			
-			$ref = $this->parent->request->proto . str_replace(array('https://','http://'),'',urldecode($_REQUEST['ref']));
-		}
-		elseif( !empty($_REQUEST['redirect_to']) ){
-			
-			$ref = $this->parent->request->proto . str_replace(array('https://','http://'),'',urldecode($_REQUEST['redirect_to']));
-		}
-		
-		return $ref;
-	}
-	
 	public function reset_session(){
 		
 		$this->parent->session->update_user_data('access_token','');		
@@ -1418,7 +937,7 @@ class LTPLE_Integrator_Twitter {
 				$oauth_token = $this->request_token['oauth_token'];
 				$oauth_token_secret = $this->request_token['oauth_token_secret'];
 				
-				$this->parent->session->update_user_data('app',$this->slug);
+				$this->parent->session->update_user_data('app',$this->app_slug);
 				$this->parent->session->update_user_data('action',$_REQUEST['action']);
 				$this->parent->session->update_user_data('oauth_token',$oauth_token);
 				$this->parent->session->update_user_data('oauth_token_secret',$oauth_token_secret);				
@@ -1473,7 +992,7 @@ class LTPLE_Integrator_Twitter {
 					
 					//store access_token in session	
 					
-					$this->parent->session->update_user_data('app',$this->slug);
+					$this->parent->session->update_user_data('app',$this->app_slug);
 					$this->parent->session->update_user_data('access_token',$this->access_token);
 					
 					// get associated user id
@@ -1666,10 +1185,6 @@ class LTPLE_Integrator_Twitter {
 					'screen_name' 	=> $this->access_token['screen_name'],
 					'text' 			=> $this->do_shortcodes($dm_content,$this->access_token['screen_name'])
 				));
-				
-				// TODO get leadAppId and update leadTwtLastDm
-				
-				//update_post_meta($leadAppId, 'leadTwtLastDm', time());
 			}
 		}
 	}

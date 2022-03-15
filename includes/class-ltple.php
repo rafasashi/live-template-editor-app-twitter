@@ -2,7 +2,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-class LTPLE_App_Twitter {
+class LTPLE_App_Twitter extends LTPLE_Client_App {
 
 	/**
 	 * The single instance of LTPLE_App_Twitter.
@@ -126,13 +126,7 @@ class LTPLE_App_Twitter {
 			}			
 		}
 	}
-	
-	public function app_template( $template_path ){
-		
-		
-		return $template_path;
-	}
-	
+
 	public function get_triggers(){
 		
 		$this->parent->stars->triggers['connected apps']['ltple_twitter_account_connected'] = array(
@@ -146,38 +140,8 @@ class LTPLE_App_Twitter {
 	public function init_app(){	
 		
 		include( $this->vendor . '/autoload.php' );
-		
-		//add_action( 'ltple_twt_auto_retweet', array( $this, 'ltple_twt_auto_retweet_event'),1,2);
-		//add_action( 'ltple_twt_auto_follow', array( $this, 'ltple_twt_auto_follow_event'),1,2);
-		//add_action( 'ltple_twt_auto_unfollow', array( $this, 'ltple_twt_auto_unfollow_event'),1,2);
-		//add_action( 'ltple_twt_import_leads', array( $this, 'ltple_twt_import_leads_event'),1,2);
 	}
-	
-	public function admin_init_app(){	
-	
-		// debug cron action from plugin settings
-		
-		if(isset($_GET['debug'])){
-		
-			$this->ltple_twt_auto_retweet_event(15167, 10);
-			
-			//$this->ltple_twt_import_leads_event();
-		
-			//$this->ltple_twt_auto_follow_event(15167,5);
-			
-			//$this->ltple_twt_auto_unfollow_event(15167,5);
-		}		
-	}
-	
-	public function get_header(){
-		
-	}
-	
-	public function get_footer(){
-		
-		
-	}	
-	
+
 	public function get_login_button(){
 	
 		$redirect_to = $this->parent->urls->dashboard;
@@ -407,5 +371,4 @@ class LTPLE_App_Twitter {
 	private function _log_version_number () {
 		update_option( $this->_token . '_version', $this->_version );
 	} // End _log_version_number ()
-
 }
