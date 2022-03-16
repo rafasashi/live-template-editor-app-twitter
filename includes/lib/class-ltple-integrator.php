@@ -35,22 +35,11 @@ class LTPLE_Integrator_Twitter extends LTPLE_Client_Integrator {
 				define('CONSUMER_SECRET', 	$this->parameters['value'][$twt_consumer_secret]);
 				define('OAUTH_CALLBACK', 	$twt_oauth_callback);
 
-				// get current action
+				// init action
+		
+				if( $action = $this->get_current_action() ){
 				
-				if(!empty($_REQUEST['action'])){
-					
-					$this->action = $_REQUEST['action'];
-				}
-				elseif( $action = $this->parent->session->get_user_data('action') ){
-					
-					$this->action = $action;
-				}
-
-				$methodName = 'app'.ucfirst($this->action);
-				
-				if(method_exists($this,$methodName)){
-					
-					$this->$methodName();
+					$this->init_action($action);
 				}
 			}
 			else{
