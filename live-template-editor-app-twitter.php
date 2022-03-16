@@ -1,7 +1,7 @@
 <?php
 /*
  * Plugin Name: Live Template Editor App Twitter
- * Version: 1.0.0.7
+ * Version: 1.0.0.8
  * Plugin URI: https://github.com/rafasashi
  * Description: Twitter API integrator for Live Template Editor.
  * Author: Rafasashi

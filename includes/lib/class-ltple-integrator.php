@@ -780,113 +780,108 @@ class LTPLE_Integrator_Twitter extends LTPLE_Client_Integrator {
 				exit;		
 			}
 		}
-		elseif( $action = $this->parent->session->get_user_data('action') ){
+		elseif( isset($_REQUEST['oauth_token']) ){
 			
-			$oauth_token = $this->parent->session->get_user_data('oauth_token');
+			// handle connect callback
 			
-			if( empty($oauth_token) ){
+			$this->request_token = [];
+			$this->request_token['oauth_token'] 		= $this->parent->session->get_user_data('oauth_token');
+			$this->request_token['oauth_token_secret'] 	= $this->parent->session->get_user_data('oauth_token_secret');
+
+			if( isset($_REQUEST['oauth_token']) && $this->request_token['oauth_token'] !== $_REQUEST['oauth_token'] ) {
 				
-				// handle connect callback
-				
-				$this->request_token = [];
-				$this->request_token['oauth_token'] 		= $this->parent->session->get_user_data('oauth_token');
-				$this->request_token['oauth_token_secret'] 	= $this->parent->session->get_user_data('oauth_token_secret');
-
-				if( isset($_REQUEST['oauth_token']) && $this->request_token['oauth_token'] !== $_REQUEST['oauth_token'] ) {
-					
-					$this->reset_session();			
-		
-					// store failure message
-
-					$message = '<div class="alert alert-danger">';
-						
-						$message .= 'Twitter connection failed...';
-							
-					$message .= '</div>';
-					
-					$this->parent->session->update_user_data('message',$message);
-				}
-				elseif(isset($_REQUEST['oauth_verifier'])){
-					
-					$this->connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET, $this->request_token['oauth_token'], $this->request_token['oauth_token_secret']);
-					
-					//get the long lived access_token that authorized to act as the user
-					
-					$this->access_token = $this->connection->oauth("oauth/access_token", ["oauth_verifier" => $_REQUEST['oauth_verifier']]);
-					
-					$this->reset_session();			
-
-					//store access_token in session					
-					
-					$this->parent->session->update_user_data('app',$this->app_slug);
-					$this->parent->session->update_user_data('access_token',$this->access_token);
-					
-					// store access_token in database		
-					
-					$app_title = wp_strip_all_tags( 'twitter - ' . $this->access_token['screen_name'] );
-					
-					$app_item = get_page_by_title( $app_title, OBJECT, 'user-app' );
-					
-					if( empty($app_item) ){
-						
-						// create app item
-						
-						$app_id = wp_insert_post(array(
-						
-							'post_title'   	 	=> $app_title,
-							'post_status'   	=> 'publish',
-							'post_type'  	 	=> 'user-app',
-							'post_author'   	=> $this->parent->user->ID
-						));
-						
-						wp_set_object_terms( $app_id, $this->term->term_id, 'app-type' );
-						
-						// set app item
-											
-						update_post_meta( $app_id, 'appData', json_encode($this->access_token,JSON_PRETTY_PRINT));
-
-						// do welcome actions
-						
-						$this->do_welcome_actions($app_id);
-						
-						// hook connected app
-						
-						do_action( 'ltple_twitter_account_connected');
-						
-						$this->parent->apps->newAppConnected();
-					}
-					else{
+				$this->reset_session();			
 	
-						// update app item
-											
-						update_post_meta( $app_item->ID, 'appData', json_encode($this->access_token,JSON_PRETTY_PRINT));
-					}
-					
-					// store success message
+				// store failure message
 
-					$message = '<div class="alert alert-success">';
-						
-						$message .= 'Congratulations, you have successfully connected a Twitter account!';
-							
-					$message .= '</div>';
+				$message = '<div class="alert alert-danger">';
 					
-					$this->parent->session->update_user_data('message',$message);
+					$message .= 'Twitter connection failed...';
+						
+				$message .= '</div>';
+				
+				$this->parent->session->update_user_data('message',$message);
+			}
+			elseif(isset($_REQUEST['oauth_verifier'])){
+				
+				$this->connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET, $this->request_token['oauth_token'], $this->request_token['oauth_token_secret']);
+				
+				//get the long lived access_token that authorized to act as the user
+				
+				$this->access_token = $this->connection->oauth("oauth/access_token", ["oauth_verifier" => $_REQUEST['oauth_verifier']]);
+				
+				$this->reset_session();			
+
+				//store access_token in session					
+				
+				$this->parent->session->update_user_data('app',$this->app_slug);
+				$this->parent->session->update_user_data('access_token',$this->access_token);
+				
+				// store access_token in database		
+				
+				$app_title = wp_strip_all_tags( 'twitter - ' . $this->access_token['screen_name'] );
+				
+				$app_item = get_page_by_title( $app_title, OBJECT, 'user-app' );
+				
+				if( empty($app_item) ){
+					
+					// create app item
+					
+					$app_id = wp_insert_post(array(
+					
+						'post_title'   	 	=> $app_title,
+						'post_status'   	=> 'publish',
+						'post_type'  	 	=> 'user-app',
+						'post_author'   	=> $this->parent->user->ID
+					));
+					
+					wp_set_object_terms( $app_id, $this->term->term_id, 'app-type' );
+					
+					// set app item
+										
+					update_post_meta( $app_id, 'appData', json_encode($this->access_token,JSON_PRETTY_PRINT));
+
+					// do welcome actions
+					
+					$this->do_welcome_actions($app_id);
+					
+					// hook connected app
+					
+					do_action( 'ltple_twitter_account_connected');
+					
+					$this->parent->apps->newAppConnected();
 				}
 				else{
-					
-					//flush session
-					
-					$this->reset_session();			
+
+					// update app item
+										
+					update_post_meta( $app_item->ID, 'appData', json_encode($this->access_token,JSON_PRETTY_PRINT));
 				}
+				
+				// store success message
+
+				$message = '<div class="alert alert-success">';
+					
+					$message .= 'Congratulations, you have successfully connected a Twitter account!';
+						
+				$message .= '</div>';
+				
+				$this->parent->session->update_user_data('message',$message);
 			}
-		}
-		
-		if( $redirect_url = $this->parent->session->get_user_data('ref') ){
+			else{
+				
+				//flush session
+				
+				$this->reset_session();			
+			}
 			
-			// Redirecting twitter callback
-			
-			wp_redirect($redirect_url);
-			exit;	
+			if( $redirect_url = $this->parent->session->get_user_data('ref') ){
+				
+				// Redirecting twitter callback
+				
+				wp_redirect($redirect_url);
+				exit;	
+			}			
 		}
 	}
 
