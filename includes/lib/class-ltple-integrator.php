@@ -8,7 +8,7 @@ class LTPLE_Integrator_Twitter extends LTPLE_Client_Integrator {
 	
 	var $action;
 	var $connectedAppId;
-	
+
 	/**
 	 * Constructor function
 	 */
@@ -34,13 +34,6 @@ class LTPLE_Integrator_Twitter extends LTPLE_Client_Integrator {
 				define('CONSUMER_KEY', 		$this->parameters['value'][$twt_consumer_key]);
 				define('CONSUMER_SECRET', 	$this->parameters['value'][$twt_consumer_secret]);
 				define('OAUTH_CALLBACK', 	$twt_oauth_callback);
-
-				// init action
-		
-				if( $action = $this->get_current_action() ){
-				
-					$this->init_action($action);
-				}
 			}
 			else{
 				
@@ -742,7 +735,7 @@ class LTPLE_Integrator_Twitter extends LTPLE_Client_Integrator {
 	}
 	
 	public function appConnect(){
-
+		
 		if( isset($_REQUEST['action']) ){
 			
 			if( $this->parent->user->loggedin ){
@@ -893,7 +886,7 @@ class LTPLE_Integrator_Twitter extends LTPLE_Client_Integrator {
 		$this->parent->session->update_user_data('ref',$this->get_ref_url());		
 		
 		return true;
-	}		
+	}
 	
 	public function appLogin(){
 	
