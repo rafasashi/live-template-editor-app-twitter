@@ -59,6 +59,12 @@ class LTPLE_App_Twitter_Settings {
 			'description'			=> __( 'Twitter API settings', $this->plugin->slug ),
 			'fields'				=> array(
 				array(
+					'id' 			=> 'twt_login',
+					'label'			=> __( 'Enable login' , $this->plugin->slug ),
+					'description'	=> 'Enable login with Twitter',
+					'type'			=> 'switch',
+				),
+				array(
 					'id' 			=> 'twt_main_account',
 					'label'			=> __( 'Main account' , $this->plugin->slug ),
 					'description'	=> 'Main connected Twitter account',

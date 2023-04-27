@@ -143,19 +143,22 @@ class LTPLE_App_Twitter extends LTPLE_Client_App {
 	}
 
 	public function get_login_button(){
-	
-		$redirect_to = $this->parent->urls->dashboard;
 		
-		if(!empty($_REQUEST['redirect_to'])){
+		if( get_option('ltple_twt_login','off') == 'on' ){
 			
-			$redirect_to = str_replace(array('http://','https://'),'',$_REQUEST['redirect_to']);
-		}
+			$redirect_to = $this->parent->urls->dashboard;
+			
+			if(!empty($_REQUEST['redirect_to'])){
+				
+				$redirect_to = str_replace(array('http://','https://'),'',$_REQUEST['redirect_to']);
+			}
 
-		echo'<a href="' . $this->parent->urls->apps . '?app=twitter&action=login&ref=' . $redirect_to . '&_='.time().'" style="border-radius:5px;width:100%;display: block;text-align: center;margin-top: 10px;" class="btn-lg btn-info">';
+			echo'<a href="' . $this->parent->urls->apps . '?app=twitter&action=login&ref=' . $redirect_to . '&_='.time().'" style="border-radius:5px;width:100%;display: block;text-align: center;margin-top: 10px;" class="btn-lg btn-info">';
+				
+				echo'Twitter Login';
 			
-			echo'Twitter Login';
-		
-		echo'</a>';
+			echo'</a>';
+		}
 	}
 	
 	public function get_user_profile_url($app){
